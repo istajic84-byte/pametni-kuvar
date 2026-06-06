@@ -6,7 +6,7 @@ import re
 
 st.set_page_config(page_title="Pametni Kuvar Spisak", layout="centered", page_icon="🍳")
 
-st.title("🍳 AI Spisak za Kupovinu (Meal Prep)")
+st.title("🍳 Spisak za Kupovinu (Meal Prep)")
 st.write("Učitajte jelovnik sa merama za 2 dana, izaberite broj osoba i upravljajte interaktivnom check listom.")
 
 # Unos API ključa kroz aplikaciju

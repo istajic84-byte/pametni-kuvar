@@ -2,12 +2,25 @@ import streamlit as st
 from google import genai
 from google.genai import types
 import PIL.Image
-import re
 
 st.set_page_config(page_title="Pametni Kuvar Spisak", layout="centered", page_icon="🍳")
 
+# --- CSS STIL ZA LEPŠU CHECK LISTU ---
+# Ovaj kod tera telefon da posivi i precrta tekst ČIM se kućica štiklira
+st.markdown("""
+<style>
+    /* Traži svaku kućicu koja je štiklirana i menja izgled njenog teksta */
+    div[data-testid="stCheckbox"] p:has(~ label input:checked),
+    div[data-testid="stCheckbox"] label:has(input:checked) p {
+        text-decoration: line-through !important;
+        color: #888888 !important;
+        opacity: 0.6;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🍳 Spisak za Kupovinu (Meal Prep)")
-st.write("Učitajte jelovnik sa merama za 2 dana, izaberite broj osoba i upravljajte interaktivnom check listom.")
+st.write("Učitajte jelovnik sa merama za 2 dana, izaberite broj osoba i upravljajte jednostavnom check listom.")
 
 # Unos API ključa kroz aplikaciju
 api_key = st.text_input("Unesite vaš Gemini API ključ:", type="password")
@@ -19,7 +32,7 @@ uploaded_file = st.file_uploader("Izaberite sliku jelovnika (PNG, JPG, JPEG):", 
 # Slajder za broj osoba
 broj_osoba = st.slider("Za koliko OSOBA spremate ove obroke (za 2 dana)?", min_value=1, max_value=10, value=1)
 
-# Sesija za čuvanje rezultata kako ne bi nestao pri kliku na check-box
+# Sesija za čuvanje rezultata
 if "spisak_tekst" not in st.session_state:
     st.session_state.spisak_tekst = ""
 
@@ -34,7 +47,6 @@ if st.button("Generiši spisak za kupovinu"):
                 client = genai.Client(api_key=api_key)
                 image = PIL.Image.open(uploaded_file)
                 
-                # Uputstvo za AI: Tražimo čist tekst sa crticama kako bismo ga lakše obradili u check-listu
                 prompt = f"""
                 Analiziraj priloženu sliku jelovnika.
                 
@@ -66,13 +78,12 @@ if st.button("Generiši spisak za kupovinu"):
             except Exception as e:
                 st.error(f"Došlo je do greške: {e}")
 
-# Prikaz interaktivne check liste ako spisak postoji
+# Prikaz čiste interaktivne check liste
 if st.session_state.spisak_tekst:
     st.subheader(f"🛒 Vaša check lista za prodavnicu:")
     
     linije = st.session_state.spisak_tekst.split("\n")
     
-    # Prolazimo kroz tekst i pretvaramo ga u kategorije i kućice za štikliranje
     for i, linija in enumerate(linije):
         linija_clean = linija.strip()
         if not linija_clean:
@@ -85,21 +96,14 @@ if st.session_state.spisak_tekst:
         # Ako je linija naslov na samom vrhu
         elif "SPISAK ZA KUPOVINU" in linija_clean:
             st.info(linija_clean)
-        # Ako je linija namirnica (počinje crticom)
+        # Ako je linija namirnica (samo pravimo običan checkbox bez dupliranja teksta ispod)
         elif linija_clean.startswith("-") or linija_clean.startswith("*"):
             namirnica = linija_clean.lstrip("-* ").strip()
-            
-            # Pravimo jedinstveni ključ za svaki checkbox da Streamlit ne pomeša stavke
-            checked = st.checkbox(namirnica, key=f"item_{i}")
-            
-            # Ako je štiklirano, preko CSS-a precrtavamo tekst
-            if checked:
-                st.markdown(f"~~{namirnica}~~ ❌ *(Imam / Kupljeno)*", unsafe_allow_html=True)
+            st.checkbox(namirnica, key=f"item_{i}")
         else:
             st.write(linija_clean)
             
     st.markdown("---")
-    # Zadržali smo i dugme za preuzimanje ako želiš tekstualni fajl
     st.download_button(
         label="📥 Preuzmi ceo spisak kao običan tekst",
         data=st.session_state.spisak_tekst,

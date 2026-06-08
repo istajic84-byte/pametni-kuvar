@@ -90,7 +90,7 @@ if st.session_state.spisak_tekst:
             namirnica = linija_clean.lstrip("-* ").strip()
             st.checkbox(namirnica, key=f"item_{i}")
             # OVA LINIJA JE TRIK: Umesto crtice, u tekstualni fajl upisujemo [ ] što mobilni Notes pretvara u kućicu!
-            spisak_za_notes.append(f"[ ] {namirnica}")
+            spisak_za_notes.append(f"☐ {namirnica}")
         else:
             st.write(linija_clean)
             spisak_za_notes.append(linija_clean)

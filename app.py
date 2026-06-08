@@ -20,8 +20,7 @@ st.markdown("""
 st.title("🍳 Spisak za Kupovinu (Meal Prep)")
 st.write("Učitajte jelovnik sa merama za 2 dana, izaberite broj osoba i upravljajte jednostavnom check listom.")
 
-api_key = st.text_input("Unesite vaš Gemini API ključ:", type="password")
-st.markdown("[Kliknite ovde da uzmete besplatan API ključ](https://google.com)")
+api_key = st.secrets["GEMINI_KEY"]
 
 uploaded_file = st.file_uploader("Izaberite sliku jelovnika (PNG, JPG, JPEG):", type=["jpg", "jpeg", "png"])
 broj_osoba = st.slider("Za koliko OSOBA spremate ove obroke (za 2 dana)?", min_value=1, max_value=10, value=1)
@@ -30,46 +29,41 @@ if "spisak_tekst" not in st.session_state:
     st.session_state.spisak_tekst = ""
 
 if st.button("Generiši spisak za kupovinu"):
-    if not api_key:
-        st.error("Molimo vas da prvo unesete Gemini API ključ.")
-    elif not uploaded_file:
-        st.error("Molimo vas da učitate sliku jelovnika.")
-    else:
-        with st.spinner("AI računa količine za izabrani broj osoba..."):
-            try:
-                client = genai.Client(api_key=api_key)
-                image = PIL.Image.open(uploaded_file)
-                
-                prompt = f"""
-                Analiziraj priloženu sliku jelovnika.
-                
-                VAŽAN KONTEKST: 
-                Sastojci na slici su navedeni pod naslovom "Sastojci za dve porcije" zato što JEDNA OSOBA sprema ove obroke unapred za DVA DANA. 
-                Dakle, sve mere na slici (npr. 140g brašna, 80g piletine) predstavljaju tačnu količinu koja je potrebna za JEDNU OSOBU za dva dana.
-                
-                Tvoj zadatak je da preračunaš i napraviš zbirni spisak namirnica za ukupno {broj_osoba} osoba koje jedu ovaj dvodnevni meni.
-                
-                Matematička logika:
-                - Ako korisnik izabere 1 osobu, količine ostaju ISTOVETNE kao na slici.
-                - Ako korisnik izabere {broj_osoba} osoba, pomnoži sve originalne količine sa tačno {broj_osoba}.
-                
-                Formatiraj izlaz:
-                1. Na samom vrhu napiši naslov: "SPISAK ZA KUPOVINU - Meni za {broj_osoba} osoba za 2 dana".
-                2. Grupiši namirnice po logičnim kategorijama iz prodavnice (Mlečni proizvodi, Povrće, Žitarice, Meso/Jaja, Ostalo). Kategorije moraju počinjati rečju 'Kategorija:' (npr. Kategorija: Povrće).
-                3. Svaka namirnica MORA biti u novom redu i počinjati sa crticom (npr. - 280g brašna). Nemoj koristiti markdown kućice ovde.
-                4. Odgovori isključivo na srpskom jeziku.
-                """
-                
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=[image, prompt]
-                )
-                
-                st.session_state.spisak_tekst = response.text
-                st.success("Spisak je uspešno generisan!")
-                
-            except Exception as e:
-                st.error(f"Došlo je do greške: {e}")
+    with st.spinner("AI računa količine za izabrani broj osoba..."):
+        try:
+            client = genai.Client(api_key=api_key)
+            image = PIL.Image.open(uploaded_file)
+            
+            prompt = f"""
+            Analiziraj priloženu sliku jelovnika.
+            
+            VAŽAN KONTEKST: 
+            Sastojci na slici su navedeni pod naslovom "Sastojci za dve porcije" zato što JEDNA OSOBA sprema ove obroke unapred za DVA DANA. 
+            Dakle, sve mere na slici (npr. 140g brašna, 80g piletine) predstavljaju tačnu količinu koja je potrebna za JEDNU OSOBU za dva dana.
+            
+            Tvoj zadatak je da preračunaš i napraviš zbirni spisak namirnica za ukupno {broj_osoba} osoba koje jedu ovaj dvodnevni meni.
+            
+            Matematička logika:
+            - Ako korisnik izabere 1 osobu, količine ostaju ISTOVETNE kao na slici.
+            - Ako korisnik izabere {broj_osoba} osoba, pomnoži sve originalne količine sa tačno {broj_osoba}.
+            
+            Formatiraj izlaz:
+            1. Na samom vrhu napiši naslov: "SPISAK ZA KUPOVINU - Meni za {broj_osoba} osoba za 2 dana".
+            2. Grupiši namirnice po logičnim kategorijama iz prodavnice (Mlečni proizvodi, Povrće, Žitarice, Meso/Jaja, Ostalo). Kategorije moraju počinjati rečju 'Kategorija:' (npr. Kategorija: Povrće).
+            3. Svaka namirnica MORA biti u novom redu i počinjati sa crticom (npr. - 280g brašna). Nemoj koristiti markdown kućice ovde.
+            4. Odgovori isključivo na srpskom jeziku.
+            """
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[image, prompt]
+            )
+            
+            st.session_state.spisak_tekst = response.text
+            st.success("Spisak je uspešno generisan!")
+            
+        except Exception as e:
+            st.error(f"Došlo je do greške: {e}")
 
 # Prikaz čiste interaktivne check liste
 if st.session_state.spisak_tekst:
